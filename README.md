@@ -1,7 +1,8 @@
 # Campfire
 
-Campfire is a web-based chat application. It supports many of the features you'd
-expect, including:
+Fork of https://once.com/campfire with custom Etch setup.
+
+Campfire is a web-based chat application. It supports many of the features you'd expect, including:
 
 - Multiple rooms, with access controls
 - Direct messages
