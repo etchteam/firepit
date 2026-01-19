@@ -57,13 +57,28 @@ module MessagesHelper
     when "sound"
       message_sound_presentation(message)
     else
-      auto_link h(ContentFilters::TextMessagePresentationFilters.apply(message.body.body)), html: { target: "_blank" }
+      filtered_content = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+
+      # Only apply auto_link if the message doesn't have markdown
+      # (markdown filter already processes links)
+      if message_has_markdown?(message)
+        h(filtered_content)
+      else
+        auto_link h(filtered_content), html: { target: "_blank" }
+      end
     end
   rescue Exception => e
     Sentry.capture_exception(e, extra: { message: message })
     Rails.logger.error "Exception while generating message representation for #{message.class.name}##{message.id}, failed with: #{e.class} `#{e.message}`"
 
     ""
+  end
+
+  def message_has_markdown?(message)
+    return false unless message.body.present?
+
+    content = message.plain_text_body
+    ContentFilters::MarkdownFilter::MARKDOWN_PATTERNS.any? { |pattern| content.match?(pattern) }
   end
 
   private
