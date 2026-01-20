@@ -46,7 +46,29 @@ For example:
 
 ## Running in development
 
+### Ruby setup
+
+This project requires Ruby 3.4.5. We recommend using [rbenv](https://github.com/rbenv/rbenv) to manage Ruby versions:
+
+    brew install rbenv ruby-build
+
+Add this to your shell config (`~/.zshrc`):
+
+    eval "$(rbenv init - zsh)"
+
+Restart your terminal, then install Ruby:
+
+    rbenv install 3.4.5
+
+### Installing dependencies
+
+    gem install bundler
+    bundle install
+
+### Starting the server
+
     bin/setup
+    bin/rails db:migrate
     bin/rails server
 
 ## Worth Noting
