@@ -82,6 +82,7 @@ jobs:
             suffix=-${{ matrix.arch }}
           labels: |
             org.opencontainers.image.source=${{ env.SOURCE_URL }}
+            service=campfire
 
       - name: Build and push (${{ matrix.platform }})
         id: build
@@ -155,6 +156,7 @@ jobs:
             latest=false
           labels: |
             org.opencontainers.image.source=${{ env.SOURCE_URL }}
+            service=campfire
 
       - name: Create multi-arch manifests
         shell: bash
