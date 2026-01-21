@@ -1,9 +1,10 @@
 class ContentFilters::MarkdownFilter < ActionText::Content::Filter
+  # Markdown pattern detection
+  # NOTE: Underscore-based emphasis (__bold__ and _italic_) is intentionally not supported
+  # to avoid false positives with code identifiers like __init__ and my_variable_name
   MARKDOWN_PATTERNS = [
     /\*\*[^*]+\*\*/,                    # Bold: **text**
-    /__[^_]+__/,                        # Bold alt: __text__
     /\*[^*]+\*/,                        # Italic: *text*
-    /_[^_]+_/,                          # Italic alt: _text_
     /`[^`]+`/,                          # Inline code: `code`
     /```[\s\S]+?```/,                   # Code blocks: ```code```
     /^[#]{1,6}\s/m,                     # Header levels 1-6: # Header
@@ -15,6 +16,10 @@ class ContentFilters::MarkdownFilter < ActionText::Content::Filter
     /^>\s/m,                            # Blockquotes: > quote
     /^---+$/m                           # Horizontal rule: ---
   ].freeze
+
+  def self.has_markdown?(text)
+    MARKDOWN_PATTERNS.any? { |pattern| text.match?(pattern) }
+  end
 
   def applicable?
     has_markdown?
@@ -32,8 +37,7 @@ class ContentFilters::MarkdownFilter < ActionText::Content::Filter
 
   private
     def has_markdown?
-      content = plain_text_content
-      MARKDOWN_PATTERNS.any? { |pattern| content.match?(pattern) }
+      self.class.has_markdown?(plain_text_content)
     end
 
     def plain_text_content

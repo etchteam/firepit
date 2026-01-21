@@ -60,9 +60,9 @@ module MessagesHelper
       filtered_content = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
 
       # Only apply auto_link if the message doesn't have markdown
-      # (markdown filter already processes links)
+      # (markdown filter already processes links and sanitizes HTML)
       if message_has_markdown?(message)
-        h(filtered_content)
+        filtered_content.html_safe
       else
         auto_link h(filtered_content), html: { target: "_blank" }
       end
@@ -77,8 +77,7 @@ module MessagesHelper
   def message_has_markdown?(message)
     return false unless message.body.present?
 
-    content = message.plain_text_body
-    ContentFilters::MarkdownFilter::MARKDOWN_PATTERNS.any? { |pattern| content.match?(pattern) }
+    ContentFilters::MarkdownFilter.has_markdown?(message.plain_text_body)
   end
 
   private
