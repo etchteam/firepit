@@ -73,17 +73,11 @@ class ContentFiltersTest < ActionView::TestCase
   # Markdown filter tests
 
   test "markdown filter is not applicable to plain text without markdown" do
-    message = Message.create! room: rooms(:pets), body: "Just plain text here", client_message_id: "0031", creator: users(:jason)
-
-    filter = ContentFilters::MarkdownFilter.new(message.body.body)
-    refute filter.applicable?
+    refute_markdown_applicable "Just plain text here"
   end
 
   test "markdown filter is applicable when markdown patterns are detected" do
-    message = Message.create! room: rooms(:pets), body: "This has **bold** text", client_message_id: "0032", creator: users(:jason)
-
-    filter = ContentFilters::MarkdownFilter.new(message.body.body)
-    assert filter.applicable?
+    assert_markdown_applicable "This has **bold** text"
   end
 
   test "has_markdown? class method detects markdown patterns" do
@@ -102,31 +96,20 @@ class ContentFiltersTest < ActionView::TestCase
   # Tests for MARKDOWN_PATTERNS (in order of pattern definition)
 
   test "renders bold text with double asterisks" do
-    message = Message.create! room: rooms(:pets), body: "This is **bold** text", client_message_id: "0016", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
-    assert_match /<strong>bold<\/strong>/, filtered.to_html
+    assert_markdown_rendered "This is **bold** text", /<strong>bold<\/strong>/
   end
 
   test "renders italic text with single asterisks" do
-    message = Message.create! room: rooms(:pets), body: "This is *italic* text", client_message_id: "0018", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
-    assert_match /<em>italic<\/em>/, filtered.to_html
+    assert_markdown_rendered "This is *italic* text", /<em>italic<\/em>/
   end
 
   test "renders inline code with backticks" do
-    message = Message.create! room: rooms(:pets), body: "Use the `print()` function", client_message_id: "0019", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
-    assert_match /<code>print\(\)<\/code>/, filtered.to_html
+    assert_markdown_rendered "Use the `print()` function", /<code>print\(\)<\/code>/
   end
 
   test "renders code blocks with triple backticks" do
     code_block = "```\ndef hello():\n    print('world')\n```"
-    message = Message.create! room: rooms(:pets), body: code_block, client_message_id: "0020", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters(code_block)
     assert_match /<code>/, filtered.to_html
     assert_match /def hello/, filtered.to_html
   end
@@ -134,132 +117,94 @@ class ContentFiltersTest < ActionView::TestCase
   test "does not detect indented code blocks as markdown" do
     # 4-space indentation doesn't trigger markdown detection (good - avoids false positives)
     indented = "Here is code:\n\n    def hello():\n        print('world')"
-    message = Message.create! room: rooms(:pets), body: indented, client_message_id: "0042", creator: users(:jason)
-
     # Should not be detected as markdown since no explicit markdown patterns
-    filter = ContentFilters::MarkdownFilter.new(message.body.body)
-    refute filter.applicable?
+    refute_markdown_applicable indented
   end
 
   test "renders headers" do
-    message = Message.create! room: rooms(:pets), body: "# Heading 1\n## Heading 2", client_message_id: "0023", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("# Heading 1\n## Heading 2")
     assert_match /<h1>Heading 1<\/h1>/, filtered.to_html
     assert_match /<h2>Heading 2<\/h2>/, filtered.to_html
   end
 
   test "renders unordered lists with asterisks" do
-    message = Message.create! room: rooms(:pets), body: "* Item 1\n* Item 2\n* Item 3", client_message_id: "0035", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("* Item 1\n* Item 2\n* Item 3")
     assert_match /<ul>/, filtered.to_html
     assert_match /<li>Item 1<\/li>/, filtered.to_html
   end
 
   test "renders unordered lists with hyphens" do
-    message = Message.create! room: rooms(:pets), body: "- Item 1\n- Item 2\n- Item 3", client_message_id: "0047", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("- Item 1\n- Item 2\n- Item 3")
     assert_match /<ul>/, filtered.to_html
     assert_match /<li>Item 1<\/li>/, filtered.to_html
   end
 
   test "renders ordered lists" do
-    message = Message.create! room: rooms(:pets), body: "1. First\n2. Second\n3. Third", client_message_id: "0036", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("1. First\n2. Second\n3. Third")
     assert_match /<ol>/, filtered.to_html
     assert_match /<li>First<\/li>/, filtered.to_html
   end
 
   test "renders markdown links" do
-    message = Message.create! room: rooms(:pets), body: "Check out [Basecamp](https://basecamp.com)", client_message_id: "0021", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("Check out [Basecamp](https://basecamp.com)")
     assert_match /<a href="https:\/\/basecamp\.com".*?>Basecamp<\/a>/, filtered.to_html
     assert_match /target="_blank"/, filtered.to_html
     assert_match /rel="noopener noreferrer"/, filtered.to_html
   end
 
   test "renders strikethrough text" do
-    message = Message.create! room: rooms(:pets), body: "This is ~~deleted~~ text", client_message_id: "0022", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
-    assert_match /<del>deleted<\/del>/, filtered.to_html
+    assert_markdown_rendered "This is ~~deleted~~ text", /<del>deleted<\/del>/
   end
 
   test "renders blockquotes" do
-    message = Message.create! room: rooms(:pets), body: "> This is a quote", client_message_id: "0024", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("> This is a quote")
     assert_match /<blockquote>/, filtered.to_html
     assert_match /This is a quote/, filtered.to_html
   end
 
   test "renders horizontal rules" do
-    message = Message.create! room: rooms(:pets), body: "Before\n\n---\n\nAfter", client_message_id: "0038", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
-    assert_match /<hr/, filtered.to_html
+    assert_markdown_rendered "Before\n\n---\n\nAfter", /<hr/
   end
 
   # Combinations, edge cases and false positives
 
   test "mixed markdown and plain URLs are both rendered" do
-    message = Message.create! room: rooms(:pets), body: "Visit **our site** at https://example.com", client_message_id: "0033", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("Visit **our site** at https://example.com")
     assert_match /<strong>our site<\/strong>/, filtered.to_html
     # Redcarpet's autolink should handle the plain URL
     assert_match /<a href="https:\/\/example\.com"/, filtered.to_html
   end
 
   test "combines markdown bold with code" do
-    message = Message.create! room: rooms(:pets), body: "Use **bold** and `code` together", client_message_id: "0034", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("Use **bold** and `code` together")
     assert_match /<strong>bold<\/strong>/, filtered.to_html
     assert_match /<code>code<\/code>/, filtered.to_html
   end
 
   test "markdown takes precedence over auto_link for URLs" do
-    message = Message.create! room: rooms(:pets), body: "Visit **https://example.com** now", client_message_id: "0040", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("Visit **https://example.com** now")
     # Should have markdown rendering, not auto_link
     assert_match /<strong>/, filtered.to_html
   end
 
   test "single line starting with asterisk does not trigger list detection" do
     # Single lines starting with "* " DON'T trigger markdown (avoids false positives)
-    message = Message.create! room: rooms(:pets), body: "* walks into room", client_message_id: "0037", creator: users(:jason)
-
-    filter = ContentFilters::MarkdownFilter.new(message.body.body)
-    refute filter.applicable?, "Single lines starting with '* ' should not trigger markdown detection"
+    refute_markdown_applicable "* walks into room", "Single lines starting with '* ' should not trigger markdown detection"
   end
 
   test "single line starting with hyphen does not trigger list detection" do
     # Single lines starting with "- " DON'T trigger markdown (avoids false positives)
-    message = Message.create! room: rooms(:pets), body: "- Not sure about that", client_message_id: "0044", creator: users(:jason)
-
-    filter = ContentFilters::MarkdownFilter.new(message.body.body)
-    refute filter.applicable?, "Single lines starting with '- ' should not trigger markdown detection"
+    refute_markdown_applicable "- Not sure about that", "Single lines starting with '- ' should not trigger markdown detection"
   end
 
   test "multiple list items trigger markdown detection" do
     # Multiple list items (2+) DO trigger markdown detection
-    message = Message.create! room: rooms(:pets), body: "* Item 1\n* Item 2", client_message_id: "0048", creator: users(:jason)
-
-    filter = ContentFilters::MarkdownFilter.new(message.body.body)
-    assert filter.applicable?, "Multiple list items should trigger markdown detection"
+    assert_markdown_applicable "* Item 1\n* Item 2", "Multiple list items should trigger markdown detection"
   end
 
   # Escaping markdown syntax
   test "escape markdown with backticks for literal characters" do
-    message = Message.create! room: rooms(:pets), body: "Use `**bold**` for bold text", client_message_id: "0045", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("Use `**bold**` for bold text")
     # The **bold** inside backticks should be rendered as code, not as bold
     assert_match /<code>\*\*bold\*\*<\/code>/, filtered.to_html
     refute_match /<strong>bold<\/strong>/, filtered.to_html
@@ -267,9 +212,7 @@ class ContentFiltersTest < ActionView::TestCase
 
   test "backslash escaping works for markdown characters" do
     # Backslash escaping DOES work - backslashes prevent markdown rendering
-    message = Message.create! room: rooms(:pets), body: "This is \\*\\*not bold\\*\\*", client_message_id: "0046", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("This is \\*\\*not bold\\*\\*")
     refute_match /<strong>/, filtered.to_html
     assert_match /\*\*not bold\*\*/, filtered.to_html
     refute_match /\\/, filtered.to_html, "Backslashes should be removed from output"
@@ -293,17 +236,13 @@ class ContentFiltersTest < ActionView::TestCase
 
   # Security tests
   test "prevents XSS attacks with script tags" do
-    message = Message.create! room: rooms(:pets), body: "**bold** <script>alert('xss')</script>", client_message_id: "0027", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("**bold** <script>alert('xss')</script>")
     refute_match /<script>/, filtered.to_html
     assert_match /<strong>bold<\/strong>/, filtered.to_html
   end
 
   test "prevents XSS attacks with javascript: URLs in markdown links" do
-    message = Message.create! room: rooms(:pets), body: "[Click me](javascript:alert('xss'))", client_message_id: "0028", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("[Click me](javascript:alert('xss'))")
     # Redcarpet's safe_links_only doesn't render javascript: URLs as links,
     # but leaves the raw markdown text in the output
     # This is acceptable - the link won't be clickable
@@ -313,22 +252,56 @@ class ContentFiltersTest < ActionView::TestCase
   end
 
   test "prevents XSS attacks with HTML event handlers" do
-    message = Message.create! room: rooms(:pets), body: "**bold** <img src=x onerror=alert('xss')>", client_message_id: "0029", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("**bold** <img src=x onerror=alert('xss')>")
     refute_match /onerror/, filtered.to_html
     refute_match /<img/, filtered.to_html
   end
 
   test "prevents style injection" do
-    message = Message.create! room: rooms(:pets), body: "**bold** <div style='background:red'>styled</div>", client_message_id: "0030", creator: users(:jason)
-
-    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    filtered = apply_text_filters("**bold** <div style='background:red'>styled</div>")
     # SanitizeTags filter should remove the style attribute and potentially the div
     refute_match /style=/, filtered.to_html
   end
 
   private
+    # Helper methods to reduce test duplication
+    def create_test_message(body, client_id: nil)
+      Message.create! room: rooms(:pets), body: body, client_message_id: client_id || next_client_id, creator: users(:jason)
+    end
+
+    def apply_text_filters(body)
+      message = create_test_message(body)
+      ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    end
+
+    def assert_markdown_rendered(body, expected_pattern, message = nil)
+      filtered = apply_text_filters(body)
+      assert_match expected_pattern, filtered.to_html, message
+    end
+
+    def refute_markdown_rendered(body, unexpected_pattern, message = nil)
+      filtered = apply_text_filters(body)
+      refute_match unexpected_pattern, filtered.to_html, message
+    end
+
+    def assert_markdown_applicable(body, message = nil)
+      test_message = create_test_message(body)
+      filter = ContentFilters::MarkdownFilter.new(test_message.body.body)
+      assert filter.applicable?, message || "Expected markdown to be detected in: #{body}"
+    end
+
+    def refute_markdown_applicable(body, message = nil)
+      test_message = create_test_message(body)
+      filter = ContentFilters::MarkdownFilter.new(test_message.body.body)
+      refute filter.applicable?, message || "Expected markdown NOT to be detected in: #{body}"
+    end
+
+    def next_client_id
+      @client_id_counter ||= 1000
+      @client_id_counter += 1
+      @client_id_counter.to_s.rjust(4, "0")
+    end
+
     def unfurled_message_body_for_basecamp(text)
       "<div>#{text}#{unfurled_link_trix_attachment_for_basecamp}</div>"
     end
