@@ -237,7 +237,7 @@ class ContentFiltersTest < ActionView::TestCase
   # Security tests
   test "prevents XSS attacks with script tags" do
     filtered = apply_text_filters("**bold** <script>alert('xss')</script>")
-    refute_match /<script>/, filtered.to_html
+    refute_match /<script>/i, filtered.to_html
     assert_match /<strong>bold<\/strong>/, filtered.to_html
   end
 
