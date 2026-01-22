@@ -158,7 +158,7 @@ class ContentFiltersTest < ActionView::TestCase
   end
 
   test "renders unordered lists with hyphens" do
-    message = Message.create! room: rooms(:pets), body: "- Item 1\n- Item 2\n- Item 3", client_message_id: "0035", creator: users(:jason)
+    message = Message.create! room: rooms(:pets), body: "- Item 1\n- Item 2\n- Item 3", client_message_id: "0047", creator: users(:jason)
 
     filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
     assert_match /<ul>/, filtered.to_html
@@ -231,15 +231,48 @@ class ContentFiltersTest < ActionView::TestCase
     assert_match /<strong>/, filtered.to_html
   end
 
-  test "single asterisk at line start is not always a list" do
-    message = Message.create! room: rooms(:pets), body: "* walks into room *", client_message_id: "0037", creator: users(:jason)
+  test "single line starting with asterisk does not trigger list detection" do
+    # Single lines starting with "* " DON'T trigger markdown (avoids false positives)
+    message = Message.create! room: rooms(:pets), body: "* walks into room", client_message_id: "0037", creator: users(:jason)
+
+    filter = ContentFilters::MarkdownFilter.new(message.body.body)
+    refute filter.applicable?, "Single lines starting with '* ' should not trigger markdown detection"
+  end
+
+  test "single line starting with hyphen does not trigger list detection" do
+    # Single lines starting with "- " DON'T trigger markdown (avoids false positives)
+    message = Message.create! room: rooms(:pets), body: "- Not sure about that", client_message_id: "0044", creator: users(:jason)
+
+    filter = ContentFilters::MarkdownFilter.new(message.body.body)
+    refute filter.applicable?, "Single lines starting with '- ' should not trigger markdown detection"
+  end
+
+  test "multiple list items trigger markdown detection" do
+    # Multiple list items (2+) DO trigger markdown detection
+    message = Message.create! room: rooms(:pets), body: "* Item 1\n* Item 2", client_message_id: "0048", creator: users(:jason)
+
+    filter = ContentFilters::MarkdownFilter.new(message.body.body)
+    assert filter.applicable?, "Multiple list items should trigger markdown detection"
+  end
+
+  # Escaping markdown syntax
+  test "escape markdown with backticks for literal characters" do
+    message = Message.create! room: rooms(:pets), body: "Use `**bold**` for bold text", client_message_id: "0045", creator: users(:jason)
 
     filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
-    # This might trigger list detection - documenting current behavior
-    # This is a known edge case from the review
-    html = filtered.to_html
-    # Just documenting what happens - this is a potential false positive
-    assert html.present?
+    # The **bold** inside backticks should be rendered as code, not as bold
+    assert_match /<code>\*\*bold\*\*<\/code>/, filtered.to_html
+    refute_match /<strong>bold<\/strong>/, filtered.to_html
+  end
+
+  test "backslash escaping works for markdown characters" do
+    # Backslash escaping DOES work - backslashes prevent markdown rendering
+    message = Message.create! room: rooms(:pets), body: "This is \\*\\*not bold\\*\\*", client_message_id: "0046", creator: users(:jason)
+
+    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+    refute_match /<strong>/, filtered.to_html
+    assert_match /\*\*not bold\*\*/, filtered.to_html
+    refute_match /\\/, filtered.to_html, "Backslashes should be removed from output"
   end
 
   test "preserves ActionText attachments with markdown" do
