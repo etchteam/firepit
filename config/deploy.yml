@@ -1,0 +1,48 @@
+# Kamal deployment configuration for Campfire
+# Documentation: https://kamal-deploy.org
+
+service: campfire
+
+image: etchteam/once-campfire
+
+builder:
+  arch: amd64
+
+servers:
+  web:
+    hosts:
+      - <%= ENV["DEPLOY_HOST"] %>
+    options:
+      env: SECRET_KEY_BASE="$(cat /root/campfire-secret-key)"
+
+proxy:
+  ssl:
+    certificate_pem: <%= ENV["SSL_CERTIFICATE_PEM"] %>
+    private_key_pem: <%= ENV["SSL_PRIVATE_KEY_PEM"] %>
+  host: <%= ENV["DEPLOY_DOMAIN"] %>
+  app_port: 5555
+  healthcheck:
+    path: /up
+    interval: 10
+    timeout: 30
+
+registry:
+  server: ghcr.io
+  username: <%= ENV["KAMAL_REGISTRY_USERNAME"] %>
+  password: <%= ENV["KAMAL_REGISTRY_PASSWORD"] %>
+
+env:
+  clear:
+    RAILS_ENV: production
+    RAILS_LOG_TO_STDOUT: "true"
+
+volumes:
+  - campfire-storage:/rails/storage
+
+ssh:
+  user: <%= ENV["DEPLOY_USER"] %>
+
+aliases:
+  console: app exec -i --reuse "bin/rails console"
+  logs: app logs -f
+  shell: app exec -i --reuse "bash"

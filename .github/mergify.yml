@@ -1,0 +1,37 @@
+---
+pull_request_rules:
+  - name: Approve and merge dependabot PRs when all checks pass
+    conditions:
+      - and:
+          - author=dependabot[bot]
+          - label!=wontfix
+    actions:
+      review:
+        type: APPROVE
+        message: Automatically approving dependabot
+      merge:
+        method: merge
+  - name: Merge when all builds pass and the PR has been approved
+    conditions:
+      - and:
+          - "#approved-reviews-by>=1"
+          - "#changes-requested-reviews-by=0"
+    actions:
+      merge:
+        method: merge
+  - name: Ask for reviews
+    conditions:
+      - -closed
+      - -draft
+      - -author=dependabot[bot]
+    actions:
+      request_reviews:
+        teams:
+          - devs
+  - name: Assign the PR to its author
+    conditions:
+      - author!=dependabot[bot]
+    actions:
+      assign:
+        users:
+          - "{{author}}"

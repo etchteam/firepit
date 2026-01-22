@@ -37,6 +37,9 @@
 # Ignore production envs
 /.env
 
+# Ignore Kamal secrets
+/.kamal/secrets
+
 # Ignore dartsass builds
 app/assets/builds/*
 
