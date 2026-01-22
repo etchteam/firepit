@@ -131,6 +131,16 @@ class ContentFiltersTest < ActionView::TestCase
     assert_match /def hello/, filtered.to_html
   end
 
+  test "does not detect indented code blocks as markdown" do
+    # 4-space indentation doesn't trigger markdown detection (good - avoids false positives)
+    indented = "Here is code:\n\n    def hello():\n        print('world')"
+    message = Message.create! room: rooms(:pets), body: indented, client_message_id: "0042", creator: users(:jason)
+
+    # Should not be detected as markdown since no explicit markdown patterns
+    filter = ContentFilters::MarkdownFilter.new(message.body.body)
+    refute filter.applicable?
+  end
+
   test "renders headers" do
     message = Message.create! room: rooms(:pets), body: "# Heading 1\n## Heading 2", client_message_id: "0023", creator: users(:jason)
 
@@ -230,6 +240,22 @@ class ContentFiltersTest < ActionView::TestCase
     html = filtered.to_html
     # Just documenting what happens - this is a potential false positive
     assert html.present?
+  end
+
+  test "preserves ActionText attachments with markdown" do
+    # When attachments are present, markdown is NOT rendered to avoid destroying attachments
+    body = "<div>Check **this** #{mention_attachment_for(:david)}</div>"
+    message = Message.create! room: rooms(:pets), body: body, creator: users(:jason)
+
+    filtered = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
+
+    # Markdown should NOT be rendered when attachments are present
+    refute_match /<strong>this<\/strong>/, filtered.to_html
+    # But attachment should be preserved
+    assert_match /action-text-attachment/, filtered.to_html
+    assert_match /#{users(:david).attachable_sgid}/, filtered.to_html
+    # Markdown syntax remains as-is
+    assert_match /\*\*this\*\*/, filtered.to_html
   end
 
   # Security tests

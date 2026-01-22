@@ -57,11 +57,14 @@ module MessagesHelper
     when "sound"
       message_sound_presentation(message)
     else
+      # Check for markdown ONCE before filtering (optimization to avoid double checking)
+      has_markdown = message.body.present? && ContentFilters::MarkdownFilter.has_markdown?(message.plain_text_body)
+
       filtered_content = ContentFilters::TextMessagePresentationFilters.apply(message.body.body)
 
       # Only apply auto_link if the message doesn't have markdown
       # (markdown filter already processes links and sanitizes HTML)
-      if message_has_markdown?(message)
+      if has_markdown
         filtered_content.html_safe
       else
         auto_link h(filtered_content), html: { target: "_blank" }
@@ -72,12 +75,6 @@ module MessagesHelper
     Rails.logger.error "Exception while generating message representation for #{message.class.name}##{message.id}, failed with: #{e.class} `#{e.message}`"
 
     ""
-  end
-
-  def message_has_markdown?(message)
-    return false unless message.body.present?
-
-    ContentFilters::MarkdownFilter.has_markdown?(message.plain_text_body)
   end
 
   private
