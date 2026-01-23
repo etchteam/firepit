@@ -108,6 +108,14 @@ class ContentFiltersTest < ActionView::TestCase
     assert_markdown_rendered "*italic* at start", /<em>italic<\/em>/
   end
 
+  test "renders italic text spanning multiple lines" do
+    multiline_italic = "*italic text\nacross lines*"
+    assert_markdown_applicable multiline_italic
+    filtered = apply_text_filters(multiline_italic)
+    assert_match /<em>italic text/, filtered.to_html
+    assert_match /across lines<\/em>/, filtered.to_html
+  end
+
   test "renders inline code with backticks" do
     assert_markdown_rendered "Use the `print()` function", /<code>print\(\)<\/code>/
   end
