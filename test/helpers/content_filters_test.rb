@@ -103,6 +103,11 @@ class ContentFiltersTest < ActionView::TestCase
     assert_markdown_rendered "This is *italic* text", /<em>italic<\/em>/
   end
 
+  test "renders italic text at line start" do
+    assert_markdown_applicable "*italic* at start"
+    assert_markdown_rendered "*italic* at start", /<em>italic<\/em>/
+  end
+
   test "renders inline code with backticks" do
     assert_markdown_rendered "Use the `print()` function", /<code>print\(\)<\/code>/
   end

@@ -12,7 +12,7 @@ class ContentFilters::MarkdownFilter < ActionText::Content::Filter
   # 2. Use backslash escaping: \*\*not bold\*\* → renders as **not bold** (plain text)
   MARKDOWN_PATTERNS = [
     /\*\*[^*]+\*\*/,                    # Bold: **text**
-    /(?<!^)\*[^*\s][^*]*\*/m,           # Italic: *text* (not at line start to avoid "* list items")
+    /(?<!\*)\*(?![*\s])[^*]+\*(?!\*)/,   # Italic: *text* (lookarounds avoid **bold** and "* list items")
     /`[^`]+`/,                          # Inline code: `code`
     /```[\s\S]+?```/,                   # Code blocks: ```code```
     /^[#]{1,6}\s/m,                     # Header levels 1-6: # Header
