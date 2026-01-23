@@ -202,6 +202,66 @@ class ContentFiltersTest < ActionView::TestCase
     assert_markdown_applicable "* Item 1\n* Item 2", "Multiple list items should trigger markdown detection"
   end
 
+  test "list with text before it triggers markdown detection" do
+    assert_markdown_applicable "Hello\n* Item 1\n* Item 2", "List with text before should trigger markdown detection"
+  end
+
+  test "list with text after it triggers markdown detection" do
+    assert_markdown_applicable "* Item 1\n* Item 2\nGoodbye", "List with text after should trigger markdown detection"
+  end
+
+  test "list with text before and after triggers markdown detection" do
+    assert_markdown_applicable "Hello\n* Item 1\n* Item 2\nGoodbye", "List with text before and after should trigger markdown detection"
+  end
+
+  test "renders list with text before it correctly" do
+    filtered = apply_text_filters("Hello\n- Item 1\n- Item 2")
+    assert_match /<ul>/, filtered.to_html
+    assert_match /<li>Item 1<\/li>/, filtered.to_html
+    assert_match /<li>Item 2<\/li>/, filtered.to_html
+    assert_match /Hello/, filtered.to_html
+  end
+
+  test "renders list with text after it correctly" do
+    filtered = apply_text_filters("- Item 1\n- Item 2\nGoodbye")
+    assert_match /<ul>/, filtered.to_html
+    assert_match /<li>Item 1<\/li>/, filtered.to_html
+    assert_match /<li>Item 2<\/li>/, filtered.to_html
+    assert_match /Goodbye/, filtered.to_html
+  end
+
+  test "renders list with text before and after correctly" do
+    filtered = apply_text_filters("Hello\n- Item 1\n- Item 2\nGoodbye")
+    assert_match /<ul>/, filtered.to_html
+    assert_match /<li>Item 1<\/li>/, filtered.to_html
+    assert_match /<li>Item 2<\/li>/, filtered.to_html
+    assert_match /Hello/, filtered.to_html
+    assert_match /Goodbye/, filtered.to_html
+  end
+
+  # Newline preservation tests
+
+  test "preserves single newlines with markdown" do
+    filtered = apply_text_filters("Line 1 with **bold**\nLine 2 normal")
+    # Should have a <br> tag to preserve the line break
+    assert_match /<br>/, filtered.to_html
+    assert_match /<strong>bold<\/strong>/, filtered.to_html
+  end
+
+  test "preserves multiple single newlines with markdown" do
+    filtered = apply_text_filters("Line 1 with **bold**\nLine 2 with *italic*\nLine 3 normal")
+    # Should have <br> tags for line breaks
+    assert_match /<strong>bold<\/strong><br>/, filtered.to_html
+    assert_match /<em>italic<\/em><br>/, filtered.to_html
+  end
+
+  test "converts double newlines to paragraph breaks" do
+    filtered = apply_text_filters("Paragraph 1 with **bold**\n\nParagraph 2 normal")
+    # Should have separate paragraphs
+    assert_match /<\/p>\s*<p>/, filtered.to_html
+    assert_match /<strong>bold<\/strong>/, filtered.to_html
+  end
+
   # Escaping markdown syntax
   test "escape markdown with backticks for literal characters" do
     filtered = apply_text_filters("Use `**bold**` for bold text")
