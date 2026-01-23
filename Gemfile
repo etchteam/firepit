@@ -45,6 +45,7 @@ gem "kredis"
 gem "platform_agent"
 gem "thruster"
 gem "redcarpet"
+gem "gemoji"
 
 group :development, :test do
   gem "debug"
@@ -55,6 +56,7 @@ end
 
 group :test do
   gem "capybara"
+  gem "minitest", "< 6.0"  # Rails doesn't yet support minitest 6.0's API changes
   gem "mocha"
   gem "selenium-webdriver"
   gem "webmock", require: false
