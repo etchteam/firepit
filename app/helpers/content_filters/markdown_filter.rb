@@ -34,8 +34,11 @@ class ContentFilters::MarkdownFilter < ActionText::Content::Filter
   end
 
   def apply
+    # Pre-process text to ensure lists are properly separated from surrounding content
+    preprocessed_text = normalize_lists(plain_text_content)
+
     # Convert markdown to HTML using Redcarpet
-    markdown_html = self.class.markdown_renderer.render(plain_text_content)
+    markdown_html = self.class.markdown_renderer.render(preprocessed_text)
 
     # Replace the entire fragment with the rendered markdown
     fragment.update do |source|
@@ -58,12 +61,54 @@ class ContentFilters::MarkdownFilter < ActionText::Content::Filter
       fragment.to_plain_text
     end
 
+    def normalize_lists(text)
+      # Add blank lines before and after lists to ensure Redcarpet renders them correctly
+      # even when they're surrounded by other text.
+      # This handles cases like:
+      # - "Hello\n* item 1\n* item 2" -> "Hello\n\n* item 1\n* item 2"
+      # - "* item 1\n* item 2\nGoodbye" -> "* item 1\n* item 2\n\nGoodbye"
+
+      lines = text.split("\n", -1)
+      result = []
+      in_list = false
+      list_pattern = /^(\*|-|\d+\.)\s/
+
+      lines.each_with_index do |line, i|
+        is_list_item = line.match?(list_pattern)
+        prev_line = i > 0 ? lines[i - 1] : nil
+
+        # Starting a list: add blank line before if previous line exists and isn't blank
+        if is_list_item && !in_list
+          if prev_line && !prev_line.strip.empty?
+            result << ""
+          end
+          in_list = true
+        end
+
+        # Ending a list: add blank line after
+        if !is_list_item && in_list && !line.strip.empty?
+          result << ""
+          in_list = false
+        end
+
+        # Exiting list at blank line
+        if line.strip.empty?
+          in_list = false
+        end
+
+        result << line
+      end
+
+      result.join("\n")
+    end
+
     def self.markdown_renderer
       @markdown_renderer ||= Redcarpet::Markdown.new(
         Redcarpet::Render::HTML.new(
           filter_html: true,           # Strip HTML tags for security
           safe_links_only: true,       # Block javascript: and data: URLs
           no_styles: true,              # Remove inline styles
+          hard_wrap: true,              # Convert single newlines to <br> tags
           link_attributes: { target: "_blank", rel: "noopener noreferrer" }
         ),
         autolink: true,                           # Convert plain URLs to links
