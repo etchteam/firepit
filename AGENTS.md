@@ -75,3 +75,8 @@ Blue-green deployment via GitHub Actions. Docker multi-arch images (amd64 + arm6
 **Production env vars:** `SECRET_KEY_BASE`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SSL_DOMAIN` (or `DISABLE_SSL`), `SENTRY_DSN`
 
 **Data persistence:** Mount volume to `/rails/storage` (SQLite DB + file attachments)
+
+## Pull Request Guidelines
+
+- Do not include a "Test plan" section in PR descriptions
+- Keep PR descriptions concise with a summary of changes
