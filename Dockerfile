@@ -72,8 +72,8 @@ ENV APP_VERSION=$APP_VERSION
 ARG GIT_REVISION
 ENV GIT_REVISION=$GIT_REVISION
 
-# Expose ports for HTTP and HTTPS
-EXPOSE 80 443
+# Expose port for Rails server (kamal-proxy handles 80/443)
+EXPOSE 3000
 
 # Start the server by default, this can be overwritten at runtime
 CMD ["bin/boot"]
