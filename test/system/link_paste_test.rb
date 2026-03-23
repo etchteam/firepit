@@ -8,37 +8,37 @@ class LinkPasteTest < ApplicationSystemTestCase
 
   test "pasting a URL over selected text creates a link" do
     fill_in_rich_text_area "Write a message", with: "Click here for more info"
-    paste_into_editor("Write a message", text: "https://example.com", selection: [0, 10])
+    paste_into_editor("Write a message", text: "https://example.com", selection: [ 0, 10 ])
     assert page.find(:rich_textarea, "Write a message").has_css?("a[href='https://example.com']")
   end
 
   test "pasting a URL without a selection does not create a link" do
     fill_in_rich_text_area "Write a message", with: "Hello"
-    paste_into_editor("Write a message", text: "https://example.com", selection: [5, 5])
+    paste_into_editor("Write a message", text: "https://example.com", selection: [ 5, 5 ])
     assert page.find(:rich_textarea, "Write a message").has_no_css?("a")
   end
 
   test "pasting a URL with embedded line breaks creates a link with the line breaks removed" do
     fill_in_rich_text_area "Write a message", with: "Click here for more info"
-    paste_into_editor("Write a message", text: "https://app.frontapp.com/inboxes/teammates/\n10381066/inbox/all/56924074506", selection: [0, 10])
+    paste_into_editor("Write a message", text: "https://app.frontapp.com/inboxes/teammates/\n10381066/inbox/all/56924074506", selection: [ 0, 10 ])
     assert page.find(:rich_textarea, "Write a message").has_css?("a[href='https://app.frontapp.com/inboxes/teammates/10381066/inbox/all/56924074506']")
   end
 
   test "pasting non-URL text over selected text does not create a link" do
     fill_in_rich_text_area "Write a message", with: "Click here for more info"
-    paste_into_editor("Write a message", text: "just some text", selection: [0, 10])
+    paste_into_editor("Write a message", text: "just some text", selection: [ 0, 10 ])
     assert page.find(:rich_textarea, "Write a message").has_no_css?("a")
   end
 
     test "pasting an incomplete URL over selected text does not create a link" do
     fill_in_rich_text_area "Write a message", with: "Click here for more info"
-    paste_into_editor("Write a message", text: "www.google", selection: [0, 10])
+    paste_into_editor("Write a message", text: "www.google", selection: [ 0, 10 ])
     assert page.find(:rich_textarea, "Write a message").has_no_css?("a")
   end
 
   test "pasting a hyperlink copied directly from a browser creates a link from the HTML href" do
     fill_in_rich_text_area "Write a message", with: "Click here for more info"
-    paste_into_editor("Write a message", text: "Inbox", selection: [0, 10],
+    paste_into_editor("Write a message", text: "Inbox", selection: [ 0, 10 ],
       html: "<a href='https://app.frontapp.com/inboxes/teammates/10381066/inbox/all/56924074506'>Inbox</a>")
     assert page.find(:rich_textarea, "Write a message").has_css?("a[href='https://app.frontapp.com/inboxes/teammates/10381066/inbox/all/56924074506']")
   end
