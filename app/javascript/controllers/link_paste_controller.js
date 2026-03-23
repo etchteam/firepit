@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 const URL_PATTERN = /^(?:[a-z0-9]+:\/\/[^\s]+|www\.[^\s.]+\.[^\s]+)$/
 
-export default class extends Controller {
+export default class LinkPasteController extends Controller {
   connect() {
     this._boundHandle = this.handle.bind(this)
     this.element.addEventListener("paste", this._boundHandle, true)
