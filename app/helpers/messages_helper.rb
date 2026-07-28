@@ -65,7 +65,7 @@ module MessagesHelper
       # Only apply auto_link if the message doesn't have markdown
       # (markdown filter already processes links and sanitizes HTML)
       if has_markdown
-        filtered_content.html_safe
+        filtered_content.to_s.html_safe
       else
         auto_link h(filtered_content), html: { target: "_blank" }
       end
