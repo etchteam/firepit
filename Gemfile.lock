@@ -255,7 +255,7 @@ GEM
     prettyprint (0.2.1)
     prism (1.8.0)
     public_suffix (7.0.5)
-    puma (6.6.1)
+    puma (7.2.1)
       nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.2.7)
@@ -431,7 +431,7 @@ DEPENDENCIES
   ostruct
   platform_agent
   propshaft!
-  puma (~> 6.6)
+  puma (~> 7.2)
   rails!
   rails_autolink
   redcarpet
